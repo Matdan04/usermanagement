@@ -21,6 +21,6 @@ export const createUserSchema = userSchema
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 
-export const updateUserSchema = userSchema.partial().extend({ id: z.string().cuid() });
+export const updateUserSchema = userSchema.omit({ id: true, createdAt: true }).partial();
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 

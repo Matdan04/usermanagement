@@ -42,7 +42,6 @@ export default function EditUserPage() {
     e.preventDefault();
     try {
       await update({
-        id,
         name: form.name,
         email: form.email,
         role: form.role,

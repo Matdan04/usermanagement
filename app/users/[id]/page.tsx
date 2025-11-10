@@ -23,7 +23,6 @@ export default function EditUserPage() {
   const form = useForm<UpdateUserInput>({
     resolver: zodResolver(updateUserSchema),
     defaultValues: {
-      id,
       name: "",
       email: "",
       phoneNumber: "",
@@ -46,7 +45,6 @@ export default function EditUserPage() {
   useEffect(() => {
     if (data) {
       reset({
-        id,
         name: data.name ?? "",
         email: data.email ?? "",
         phoneNumber: data.phoneNumber ?? "",
@@ -56,7 +54,7 @@ export default function EditUserPage() {
         bio: data.bio ?? "",
       });
     }
-  }, [data, id, reset]);
+  }, [data, reset]);
 
   useEffect(() => {
     const status = (error as any)?.response?.status;
@@ -69,7 +67,6 @@ export default function EditUserPage() {
   async function onSubmit(values: UpdateUserInput) {
     try {
       await update({
-        id,
         name: values.name,
         email: values.email,
         role: values.role,
