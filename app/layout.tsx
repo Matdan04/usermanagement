@@ -27,9 +27,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground transition-colors duration-300`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased transition-colors duration-300`}>
         <Providers>
-          <div className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white/80 backdrop-blur-lg shadow-sm dark:border-slate-700 dark:bg-slate-900/80 transition-colors">
+          <div className="sticky top-0 z-40 w-full border-b border-border backdrop-blur-lg shadow-sm transition-colors" style={{ backgroundColor: 'var(--header-bg)' }}>
             <div className="mx-auto flex max-w-6xl items-center justify-end gap-2 p-3">
               <ThemeToggle />
             </div>

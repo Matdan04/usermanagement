@@ -12,6 +12,7 @@
   --input-border: #d1d5db;
   --muted: #f9fafb;
   --muted-foreground: #6b7280;
+  --header-bg: rgba(255, 255, 255, 0.9);
 }
 
 .dark {
@@ -24,6 +25,7 @@
   --input-border: #475569;
   --muted: #1e293b;
   --muted-foreground: #94a3b8;
+  --header-bg: rgba(15, 23, 42, 0.95);
 }
 
 body {
