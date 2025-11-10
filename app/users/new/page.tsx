@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { useCreateUser } from "@/lib/api";
 import { createUserSchema, type CreateUserInput } from "@/types/user";
 import { toast } from "sonner";
+import { useState } from "react";
 
 import { motion } from "framer-motion";
 
@@ -35,13 +36,28 @@ export default function NewUserPage() {
     },
   });
   const { mutateAsync: create, isPending } = useCreateUser();
+  const [uploading, setUploading] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   async function onSubmit(values: CreateUserInput) {
     try {
+      let avatarUrl = values.avatar;
+      if (avatarFile) {
+        setUploading(true);
+        const fd = new FormData();
+        fd.append("file", avatarFile);
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        if (!res.ok) throw new Error("upload failed");
+        const json = (await res.json()) as { url: string };
+        avatarUrl = json.url;
+        // also reflect in form state so UI shows the resulting URL
+        setValue("avatar", avatarUrl, { shouldValidate: true });
+      }
+
       await create({
         ...values,
         phoneNumber: values.phoneNumber || undefined,
-        avatar: values.avatar || undefined,
+        avatar: avatarUrl || undefined,
         bio: values.bio || undefined,
       });
       toast.success("User created");
@@ -49,6 +65,9 @@ export default function NewUserPage() {
     } catch (e: any) {
       const errorMessage = e?.response?.data?.error || "Failed to create user";
       toast.error(errorMessage);
+    } finally {
+      setUploading(false);
+      setAvatarFile(null);
     }
   }
 
@@ -65,9 +84,23 @@ export default function NewUserPage() {
         transition={{ duration: 0.2 }}
       >
         <div className="space-y-2">
-          <Label htmlFor="avatar">Avatar URL</Label>
-          <Input id="avatar" placeholder="https://..." {...register("avatar")} />
+          <Label htmlFor="avatar">Avatar</Label>
+          <div className="grid gap-2 md:grid-cols-2">
+            <Input id="avatar" placeholder="https://..." {...register("avatar")} />
+            <input
+              id="avatarFile"
+              type="file"
+              accept="image/*"
+              className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm file:mr-3 file:rounded file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              onChange={(e) => {
+                const file = e.target.files?.[0] || null;
+                setAvatarFile(file);
+              }}
+              disabled={uploading}
+            />
+          </div>
           {errors.avatar && <p className="text-sm text-red-600 dark:text-red-400">{errors.avatar.message as string}</p>}
+          {uploading ? <p className="text-xs text-gray-500 dark:text-gray-400">Uploading...</p> : null}
         </div>
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
@@ -106,7 +139,7 @@ export default function NewUserPage() {
         </div>
 
         <div className="flex gap-2">
-          <Button type="submit" disabled={isPending}>
+          <Button type="submit" disabled={isPending || uploading}>
             {isPending ? (
               <span className="inline-flex items-center gap-2">
                 <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-transparent" />
