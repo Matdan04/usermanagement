@@ -46,7 +46,8 @@ export default function UsersPage() {
   );
 
   const { data, isLoading, isError, refetch } = useUsers(queryParams);
-  const { mutateAsync: deleteUser, isPending: deleting } = useDeleteUser();
+  const { mutate: deleteUser, isPending: deleting } = useDeleteUser();
+  const [syncingIds, setSyncingIds] = useState<Record<string, boolean>>({});
 
   const allSelected = useMemo(() => {
     if (!data?.length) return false;
@@ -75,18 +76,25 @@ export default function UsersPage() {
       .map(([k]) => k);
     if (ids.length === 0) return;
     if (!confirm(`Delete ${ids.length} user(s)?`)) return;
-    try {
-      for (const id of ids) {
-        // sequential to avoid rate-limiting; could batch in backend if needed
-        // eslint-disable-next-line no-await-in-loop
-        await deleteUser(id);
-      }
-      toast.success("Selected users deleted");
-      setSelected({});
-      refetch();
-    } catch {
-      toast.error("Failed to delete some users");
-    }
+    ids.forEach((id) => {
+      setSyncingIds((s) => ({ ...s, [id]: true }));
+      deleteUser(id, {
+        onSuccess: () => {
+          // success toast per id might be noisy; keep one at end via settle check
+        },
+        onError: () => {
+          toast.error(`Failed to delete user`);
+        },
+        onSettled: () => {
+          setSyncingIds((s) => {
+            const n = { ...s };
+            delete n[id];
+            return n;
+          });
+        },
+      });
+    });
+    toast.success("Deletion requested – syncing…");
   }
 
   return (
@@ -243,18 +251,29 @@ export default function UsersPage() {
                   <Button
                     size="sm"
                     variant="destructive"
-                    onClick={async () => {
+                    onClick={() => {
                       if (!confirm("Delete this user?")) return;
-                      try {
-                        await deleteUser(u.id);
-                        toast.success("User deleted");
-                        refetch();
-                      } catch {
-                        toast.error("Failed to delete");
-                      }
+                      setSyncingIds((s) => ({ ...s, [u.id]: true }));
+                      deleteUser(u.id, {
+                        onSuccess: () => toast.success("User deleted"),
+                        onError: () => toast.error("Failed to delete"),
+                        onSettled: () =>
+                          setSyncingIds((s) => {
+                            const n = { ...s };
+                            delete n[u.id];
+                            return n;
+                          }),
+                      });
                     }}
                   >
-                    Delete
+                    {syncingIds[u.id] ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-transparent" />
+                        Syncing
+                      </span>
+                    ) : (
+                      "Delete"
+                    )}
                   </Button>
                 </TableCell>
               </TableRow>
@@ -266,4 +285,3 @@ export default function UsersPage() {
     </main>
   );
 }
-

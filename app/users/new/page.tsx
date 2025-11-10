@@ -98,7 +98,16 @@ export default function NewUserPage() {
         </div>
 
         <div className="flex gap-2">
-          <Button type="submit" disabled={isPending}>Create</Button>
+          <Button type="submit" disabled={isPending}>
+            {isPending ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-transparent" />
+                Creating…
+              </span>
+            ) : (
+              "Create"
+            )}
+          </Button>
           <Button type="button" variant="secondary" onClick={() => router.back()}>
             Cancel
           </Button>

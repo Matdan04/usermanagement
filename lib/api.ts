@@ -68,7 +68,38 @@ export function useCreateUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: createUser,
-    onSuccess: () => qc.invalidateQueries({ queryKey: usersKeys.list() }),
+    onMutate: async (newUser) => {
+      await qc.cancelQueries({ queryKey: usersKeys.all });
+      const previous = qc.getQueriesData<User[]>({ queryKey: usersKeys.all });
+
+      const tempId = `temp-${Date.now()}`;
+      const optimistic: User = {
+        id: tempId,
+        name: newUser.name,
+        email: newUser.email,
+        phoneNumber: newUser.phoneNumber ?? "",
+        role: newUser.role,
+        active: newUser.active ?? true,
+        avatar: newUser.avatar ?? "",
+        bio: newUser.bio ?? "",
+        createdAt: new Date().toISOString(),
+      } as User;
+
+      previous.forEach(([key, old]) => {
+        if (!Array.isArray(old)) return;
+        qc.setQueryData(key, [optimistic, ...old]);
+      });
+
+      return { previous } as { previous: [unknown, User[] | undefined][] };
+    },
+    onError: (_err, _variables, context) => {
+      context?.previous?.forEach(([key, old]) => {
+        qc.setQueryData(key, old);
+      });
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: usersKeys.all });
+    },
   });
 }
 
@@ -76,9 +107,32 @@ export function useUpdateUser(id: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: UpdateUserInput) => updateUser(id, payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: usersKeys.list() });
-      qc.invalidateQueries({ queryKey: usersKeys.detail(id) });
+    onMutate: async (payload) => {
+      await qc.cancelQueries({ queryKey: usersKeys.all });
+      const previousList = qc.getQueriesData<User[]>({ queryKey: usersKeys.all });
+      const previousDetail = qc.getQueryData<User>(usersKeys.detail(id));
+
+      previousList.forEach(([key, old]) => {
+        if (!Array.isArray(old)) return;
+        const next = old.map((u) => (u.id === id ? ({ ...u, ...payload } as User) : u));
+        qc.setQueryData(key, next);
+      });
+
+      if (previousDetail) {
+        qc.setQueryData(usersKeys.detail(id), { ...previousDetail, ...payload });
+      }
+
+      return { previousList, previousDetail } as {
+        previousList: [unknown, User[] | undefined][];
+        previousDetail?: User;
+      };
+    },
+    onError: (_err, _payload, ctx) => {
+      ctx?.previousList?.forEach(([key, old]) => qc.setQueryData(key, old));
+      if (ctx?.previousDetail) qc.setQueryData(usersKeys.detail(id), ctx.previousDetail);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: usersKeys.all });
     },
   });
 }
@@ -87,6 +141,31 @@ export function useDeleteUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: deleteUser,
-    onSuccess: () => qc.invalidateQueries({ queryKey: usersKeys.list() }),
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: usersKeys.all });
+      const previous = qc.getQueriesData<User[]>({ queryKey: usersKeys.all });
+
+      previous.forEach(([key, old]) => {
+        if (!Array.isArray(old)) return;
+        qc.setQueryData(
+          key,
+          old.filter((u) => u.id !== id)
+        );
+      });
+
+      const previousDetail = qc.getQueryData<User>(usersKeys.detail(id));
+
+      return { previous, previousDetail } as {
+        previous: [unknown, User[] | undefined][];
+        previousDetail?: User;
+      };
+    },
+    onError: (_err, id, context) => {
+      context?.previous?.forEach(([key, old]) => qc.setQueryData(key, old));
+      if (id && context?.previousDetail) qc.setQueryData(usersKeys.detail(id), context.previousDetail);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: usersKeys.all });
+    },
   });
 }
