@@ -49,7 +49,13 @@ export async function GET(req: NextRequest) {
 
   const users = await prisma.user.findMany({ where, orderBy });
   // Ensure output matches zod schema (runtime guard)
-  const data = users.map((u) => userSchema.parse(u));
+  const data = users.map((u) => userSchema.parse({
+    ...u,
+    phoneNumber: u.phoneNumber ?? "",
+    avatar: u.avatar ?? "",
+    bio: u.bio ?? "",
+    createdAt: u.createdAt.toISOString(),
+  }));
   return NextResponse.json(data);
 }
 
@@ -69,7 +75,13 @@ export async function POST(req: NextRequest) {
         bio: payload.bio ?? null,
       },
     });
-    return NextResponse.json(userSchema.parse(created), { status: 201 });
+    return NextResponse.json(userSchema.parse({
+      ...created,
+      phoneNumber: created.phoneNumber ?? "",
+      avatar: created.avatar ?? "",
+      bio: created.bio ?? "",
+      createdAt: created.createdAt.toISOString(),
+    }), { status: 201 });
   } catch (e: any) {
     if (e instanceof z.ZodError) {
       return NextResponse.json({ error: e.flatten() }, { status: 400 });

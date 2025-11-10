@@ -1,85 +1,99 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { useCreateUser } from "@/lib/api";
+import { createUserSchema, type CreateUserInput } from "@/types/user";
 import { toast } from "sonner";
 
 export default function NewUserPage() {
   const router = useRouter();
-  const { mutateAsync: create, isPending } = useCreateUser();
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phoneNumber: "",
-    role: "",
-    active: true,
-    avatar: "",
-    bio: "",
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    watch,
+  } = useForm<CreateUserInput>({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phoneNumber: "",
+      role: "user",
+      active: true,
+      avatar: "",
+      bio: "",
+    },
   });
+  const { mutateAsync: create, isPending } = useCreateUser();
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function onSubmit(values: CreateUserInput) {
     try {
-      if (!form.name || !form.email || !form.role) {
-        toast.error("Name, Email and Role are required");
-        return;
-      }
       await create({
-        name: form.name,
-        email: form.email,
-        role: form.role,
-        active: form.active,
-        phoneNumber: form.phoneNumber || undefined,
-        avatar: form.avatar || undefined,
-        bio: form.bio || undefined,
+        ...values,
+        phoneNumber: values.phoneNumber || undefined,
+        avatar: values.avatar || undefined,
+        bio: values.bio || undefined,
       });
       toast.success("User created");
       router.push("/users");
-    } catch (err) {
-      toast.error("Failed to create user");
+    } catch (e: any) {
+      const errorMessage = e?.response?.data?.error || "Failed to create user";
+      toast.error(errorMessage);
     }
   }
 
-  function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
-    setForm((f) => ({ ...f, [key]: value }));
-  }
+  const active = watch("active");
 
   return (
     <main className="mx-auto max-w-2xl p-6">
       <h1 className="mb-6 text-2xl font-semibold">New User</h1>
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="avatar">Avatar URL</Label>
+          <Input id="avatar" placeholder="https://..." {...register("avatar")} />
+          {errors.avatar && <p className="text-sm text-red-600">{errors.avatar.message as string}</p>}
+        </div>
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
-          <Input id="name" value={form.name} onChange={(e) => set("name", e.target.value)} required />
+          <Input id="name" {...register("name")} />
+          {errors.name && <p className="text-sm text-red-600">{errors.name.message}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} required />
+          <Input id="email" type="email" {...register("email")} />
+          {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <Input id="role" value={form.role} onChange={(e) => set("role", e.target.value)} required />
+            <select id="role" className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm" {...register("role")}> 
+              <option value="admin">admin</option>
+              <option value="editor">editor</option>
+              <option value="user">user</option>
+            </select>
+            {errors.role && <p className="text-sm text-red-600">{errors.role.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="phoneNumber">Phone</Label>
-            <Input id="phoneNumber" value={form.phoneNumber} onChange={(e) => set("phoneNumber", e.target.value)} />
+            <Input id="phoneNumber" {...register("phoneNumber")} />
+            {errors.phoneNumber && <p className="text-sm text-red-600">{errors.phoneNumber.message as string}</p>}
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="avatar">Avatar URL</Label>
-          <Input id="avatar" value={form.avatar} onChange={(e) => set("avatar", e.target.value)} />
-        </div>
-        <div className="space-y-2">
           <Label htmlFor="bio">Bio</Label>
-          <Input id="bio" value={form.bio} onChange={(e) => set("bio", e.target.value)} />
+          <Textarea id="bio" rows={4} {...register("bio")} />
+          {errors.bio && <p className="text-sm text-red-600">{errors.bio.message as string}</p>}
         </div>
-        <div className="flex items-center gap-2">
-          <input id="active" type="checkbox" checked={form.active} onChange={(e) => set("active", e.target.checked)} />
+        <div className="flex items-center gap-3">
+          <Switch id="active" checked={!!active} onCheckedChange={(v) => setValue("active", !!v)} />
           <Label htmlFor="active">Active</Label>
         </div>
 
@@ -93,4 +107,3 @@ export default function NewUserPage() {
     </main>
   );
 }
-

@@ -1,71 +1,143 @@
 "use client";
 
+import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { useUser } from "@/lib/api";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { useUpdateUser, useUser } from "@/lib/api";
+import { updateUserSchema, type UpdateUserInput } from "@/types/user";
+import { toast } from "sonner";
 
-export default function UserDetailPage() {
+export default function EditUserPage() {
   const params = useParams();
   const id = String(params?.id);
-  const { data, isLoading, isError } = useUser(id);
   const router = useRouter();
+  const { data, isLoading } = useUser(id);
+  const { mutateAsync: update, isPending } = useUpdateUser(id);
+
+  const form = useForm<UpdateUserInput>({
+    resolver: zodResolver(updateUserSchema),
+    defaultValues: {
+      id,
+      name: "",
+      email: "",
+      phoneNumber: "",
+      role: "user",
+      active: true,
+      avatar: "",
+      bio: "",
+    },
+  });
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    reset,
+    watch,
+  } = form;
+
+  useEffect(() => {
+    if (data) {
+      reset({
+        id,
+        name: data.name ?? "",
+        email: data.email ?? "",
+        phoneNumber: data.phoneNumber ?? "",
+        role: data.role ?? "user",
+        active: !!data.active,
+        avatar: data.avatar ?? "",
+        bio: data.bio ?? "",
+      });
+    }
+  }, [data, id, reset]);
+
+  async function onSubmit(values: UpdateUserInput) {
+    try {
+      await update({
+        name: values.name,
+        email: values.email,
+        role: values.role,
+        active: values.active,
+        phoneNumber: values.phoneNumber || undefined,
+        avatar: values.avatar || undefined,
+        bio: values.bio || undefined,
+      });
+      toast.success("User updated");
+      router.push("/users");
+    } catch (e) {
+      toast.error("Failed to update user");
+    }
+  }
+
+  const active = watch("active");
 
   return (
-    <main className="mx-auto max-w-3xl p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">User</h1>
-        <div className="space-x-2">
-          <Button asChild variant="secondary">
-            <Link href={`/users/${id}/edit`}>Edit</Link>
-          </Button>
-          <Button variant="outline" onClick={() => router.push("/users")}>Back</Button>
-        </div>
+    <main className="mx-auto max-w-2xl p-6">
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Edit User</h1>
+        <Button variant="secondary" onClick={() => router.back()}>
+          Back
+        </Button>
       </div>
 
       {isLoading && <p>Loading…</p>}
-      {isError && <p className="text-red-600">Failed to load user.</p>}
-      {data && (
-        <div className="space-y-2 rounded-md border p-4">
-          <div>
-            <div className="text-sm text-gray-500">Name</div>
-            <div className="text-base">{data.name}</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-500">Email</div>
-            <div className="text-base">{data.email}</div>
-          </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <div className="text-sm text-gray-500">Role</div>
-              <div className="text-base">{data.role}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Active</div>
-              <div className="text-base">{data.active ? "Yes" : "No"}</div>
-            </div>
-          </div>
-          {data.phoneNumber && (
-            <div>
-              <div className="text-sm text-gray-500">Phone</div>
-              <div className="text-base">{data.phoneNumber}</div>
-            </div>
-          )}
-          {data.avatar && (
-            <div>
-              <div className="text-sm text-gray-500">Avatar</div>
-              <div className="text-base break-all">{data.avatar}</div>
-            </div>
-          )}
-          {data.bio && (
-            <div>
-              <div className="text-sm text-gray-500">Bio</div>
-              <div className="text-base">{data.bio}</div>
-            </div>
-          )}
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="avatar">Avatar URL</Label>
+          <Input id="avatar" placeholder="https://..." {...register("avatar")} />
+          {errors.avatar && <p className="text-sm text-red-600">{errors.avatar.message as string}</p>}
         </div>
-      )}
+        <div className="space-y-2">
+          <Label htmlFor="name">Name</Label>
+          <Input id="name" {...register("name")} />
+          {errors.name && <p className="text-sm text-red-600">{errors.name.message}</p>}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" type="email" {...register("email")} />
+          {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="role">Role</Label>
+            <select id="role" className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm" {...register("role")}>
+              <option value="admin">admin</option>
+              <option value="editor">editor</option>
+              <option value="user">user</option>
+            </select>
+            {errors.role && <p className="text-sm text-red-600">{errors.role.message as string}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phoneNumber">Phone</Label>
+            <Input id="phoneNumber" {...register("phoneNumber")} />
+            {errors.phoneNumber && <p className="text-sm text-red-600">{errors.phoneNumber.message as string}</p>}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="bio">Bio</Label>
+          <Textarea id="bio" rows={4} {...register("bio")} />
+          {errors.bio && <p className="text-sm text-red-600">{errors.bio.message as string}</p>}
+        </div>
+        <div className="flex items-center gap-3">
+          <Switch id="active" checked={!!active} onCheckedChange={(v) => setValue("active", !!v)} />
+          <Label htmlFor="active">Active</Label>
+        </div>
+
+        <div className="flex gap-2">
+          <Button type="submit" disabled={isPending}>Save</Button>
+          <Button type="button" variant="secondary" onClick={() => router.back()}>
+            Cancel
+          </Button>
+        </div>
+      </form>
     </main>
   );
 }
-

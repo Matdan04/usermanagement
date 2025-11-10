@@ -14,7 +14,7 @@ const updateBodySchema = z
     phoneNumber: z.string().optional(),
     role: z.string().min(1).optional(),
     active: z.boolean().optional(),
-    avatar: z.string().url().optional(),
+    avatar: z.string().url().optional().or(z.literal("")),
     bio: z.string().optional(),
   })
   .strict();
@@ -27,7 +27,13 @@ export async function GET(_req: NextRequest, ctx: { params: { id: string } }) {
   const { id } = parse.data;
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(userSchema.parse(user));
+  return NextResponse.json(userSchema.parse({
+    ...user,
+    phoneNumber: user.phoneNumber ?? "",
+    avatar: user.avatar ?? "",
+    bio: user.bio ?? "",
+    createdAt: user.createdAt.toISOString(),
+  }));
 }
 
 export async function PUT(req: NextRequest, ctx: { params: { id: string } }) {
@@ -50,7 +56,13 @@ export async function PUT(req: NextRequest, ctx: { params: { id: string } }) {
         bio: payload.bio ?? undefined,
       },
     });
-    return NextResponse.json(userSchema.parse(updated));
+    return NextResponse.json(userSchema.parse({
+      ...updated,
+      phoneNumber: updated.phoneNumber ?? "",
+      avatar: updated.avatar ?? "",
+      bio: updated.bio ?? "",
+      createdAt: updated.createdAt.toISOString(),
+    }));
   } catch (e: any) {
     if (e instanceof z.ZodError) {
       return NextResponse.json({ error: e.flatten() }, { status: 400 });
@@ -83,4 +95,3 @@ export async function DELETE(_req: NextRequest, ctx: { params: { id: string } })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

@@ -16,7 +16,7 @@ export type User = z.infer<typeof userSchema>;
 
 export const createUserSchema = userSchema
   .omit({ id: true, createdAt: true })
-  .extend({ active: z.boolean().default(true) });
+  .extend({ active: z.boolean() });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 
