@@ -27,7 +27,7 @@ export async function GET(_req: NextRequest, ctx: { params: { id: string } }) {
   }
   const { id } = parse.data;
   const user = await prisma.user.findUnique({ where: { id } });
-  if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
   return NextResponse.json(userSchema.parse({
     ...user,
     phoneNumber: user.phoneNumber ?? "",
@@ -73,10 +73,10 @@ export async function PUT(req: NextRequest, ctx: { params: { id: string } }) {
         return NextResponse.json({ error: "Email already exists" }, { status: 409 });
       }
       if (e.code === "P2025") {
-        return NextResponse.json({ error: "Not found" }, { status: 404 });
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 
@@ -91,8 +91,8 @@ export async function DELETE(_req: NextRequest, ctx: { params: { id: string } })
     return NextResponse.json({ success: true });
   } catch (e: any) {
     if (e instanceof PrismaClientKnownRequestError && e.code === "P2025") {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

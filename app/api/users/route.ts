@@ -65,6 +65,12 @@ export async function POST(req: NextRequest) {
     const json = await req.json();
     const payload = createUserSchema.parse(json);
 
+    // Unique email pre-check to return a clean 409 without relying on DB error
+    const existing = await prisma.user.findUnique({ where: { email: payload.email } });
+    if (existing) {
+      return NextResponse.json({ error: "Email already exists" }, { status: 409 });
+    }
+
     const created = await prisma.user.create({
       data: {
         name: payload.name,
@@ -90,6 +96,6 @@ export async function POST(req: NextRequest) {
     if (e instanceof PrismaClientKnownRequestError && e.code === "P2002") {
       return NextResponse.json({ error: "Email already exists" }, { status: 409 });
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
