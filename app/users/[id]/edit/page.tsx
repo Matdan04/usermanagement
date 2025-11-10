@@ -65,7 +65,7 @@ export default function EditUserPage() {
       });
       toast.success("User updated");
       router.push(`/users/${id}`);
-    } catch (err) {
+    } catch {
       toast.error("Failed to update user");
     } finally {
       setUploading(false);

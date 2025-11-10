@@ -58,7 +58,7 @@ export default function EditUserPage() {
   }, [data, reset]);
 
   useEffect(() => {
-    const status = (error as any)?.response?.status;
+    const status = (error as { response?: { status?: number } })?.response?.status;
     if (status === 404) {
       toast.error("User not found. Create a new one.");
       router.replace("/users/new");
@@ -76,8 +76,8 @@ export default function EditUserPage() {
         avatar: values.avatar || undefined,
         bio: values.bio || undefined,
       }, {
-        onError: (err: any) => {
-          const status = err?.response?.status;
+        onError: (err: unknown) => {
+          const status = (err as { response?: { status?: number } })?.response?.status;
           if (status === 404) {
             toast.error("User was deleted. Create a new one.");
             router.replace("/users/new");
@@ -88,8 +88,8 @@ export default function EditUserPage() {
       });
       toast.success("User updated");
       router.push("/users");
-    } catch (e: any) {
-      const status = e?.response?.status;
+    } catch (e: unknown) {
+      const status = (e as { response?: { status?: number } })?.response?.status;
       if (status === 404) {
         toast.error("User was deleted. Create a new one.");
         router.replace("/users/new");

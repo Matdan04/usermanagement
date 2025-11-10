@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { userSchema } from "@/types/user";
 
@@ -64,7 +63,7 @@ export async function PUT(req: NextRequest, ctx: { params: { id: string } }) {
       bio: updated.bio ?? "",
       createdAt: updated.createdAt.toISOString(),
     }));
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof z.ZodError) {
       return NextResponse.json({ error: e.flatten() }, { status: 400 });
     }
@@ -89,7 +88,7 @@ export async function DELETE(_req: NextRequest, ctx: { params: { id: string } })
   try {
     await prisma.user.delete({ where: { id } });
     return NextResponse.json({ success: true });
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof PrismaClientKnownRequestError && e.code === "P2025") {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }

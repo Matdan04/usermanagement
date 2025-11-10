@@ -62,8 +62,8 @@ export default function NewUserPage() {
       });
       toast.success("User created");
       router.push("/users");
-    } catch (e: any) {
-      const errorMessage = e?.response?.data?.error || "Failed to create user";
+    } catch (e: unknown) {
+      const errorMessage = (e as { response?: { data?: { error?: string } } })?.response?.data?.error || "Failed to create user";
       toast.error(errorMessage);
     } finally {
       setUploading(false);

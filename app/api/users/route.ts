@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { createUserSchema, userSchema } from "@/types/user";
 
@@ -21,8 +20,8 @@ export async function GET(req: NextRequest) {
   const parse = listQuerySchema.safeParse({
     search: searchParams.get("search") ?? undefined,
     role: searchParams.get("role") ?? undefined,
-    sortBy: (searchParams.get("sortBy") as any) ?? undefined,
-    order: (searchParams.get("order") as any) ?? undefined,
+    sortBy: searchParams.get("sortBy") ?? undefined,
+    order: searchParams.get("order") ?? undefined,
     dateFrom: searchParams.get("dateFrom") ?? undefined,
     dateTo: searchParams.get("dateTo") ?? undefined,
     page: searchParams.get("page") ?? undefined,
@@ -119,7 +118,7 @@ export async function POST(req: NextRequest) {
       bio: created.bio ?? "",
       createdAt: created.createdAt.toISOString(),
     }), { status: 201 });
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof z.ZodError) {
       return NextResponse.json({ error: e.flatten() }, { status: 400 });
     }

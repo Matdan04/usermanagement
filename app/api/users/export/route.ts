@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { Parser } from "json2csv";
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const users = await prisma.user.findMany({ orderBy: { createdAt: "desc" } });
 
@@ -42,7 +42,7 @@ export async function GET(_req: NextRequest) {
         "Cache-Control": "no-store",
       },
     });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: "Failed to export users" }, { status: 500 });
   }
 }
