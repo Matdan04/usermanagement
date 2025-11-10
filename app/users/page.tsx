@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -312,6 +312,28 @@ export default function UsersPage() {
     setUserToDelete(null);
   }
 
+  function handleHeaderSort(column: SortBy) {
+    if (sortBy === column) {
+      // Toggle order if clicking the same column
+      setOrder(order === "asc" ? "desc" : "asc");
+    } else {
+      // Set new column and default to ascending
+      setSortBy(column);
+      setOrder("asc");
+    }
+  }
+
+  function getSortIcon(column: SortBy) {
+    if (sortBy !== column) {
+      return <ChevronsUpDown className="ml-1 h-4 w-4 text-gray-400" />;
+    }
+    return order === "asc" ? (
+      <ChevronUp className="ml-1 h-4 w-4 text-blue-600 dark:text-blue-400" />
+    ) : (
+      <ChevronDown className="ml-1 h-4 w-4 text-blue-600 dark:text-blue-400" />
+    );
+  }
+
   return (
     <main className="mx-auto max-w-[1400px] p-6">
       <div className="mb-4 flex items-center justify-between gap-2">
@@ -427,23 +449,6 @@ export default function UsersPage() {
 
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <select
-            className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortBy)}
-          >
-            <option value="name">Sort by Name</option>
-            <option value="email">Sort by Email</option>
-            <option value="createdAt">Sort by Created</option>
-          </select>
-          <select
-            className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-            value={order}
-            onChange={(e) => setOrder(e.target.value as SortOrder)}
-          >
-            <option value="asc">Asc</option>
-            <option value="desc">Desc</option>
-          </select>
           <Button variant="destructive" onClick={initiateBulkDelete} disabled={deleting}>
             Bulk Delete
           </Button>
@@ -472,12 +477,36 @@ export default function UsersPage() {
                 <input type="checkbox" className="h-4 w-4 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-slate-500 dark:bg-slate-700 dark:focus:ring-blue-400" checked={allSelected} onChange={toggleAll} aria-label="Select all" />
               </TableHead>
               <TableHead>Avatar</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
+              <TableHead 
+                className="cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-slate-800"
+                onClick={() => handleHeaderSort("name")}
+              >
+                <div className="flex items-center">
+                  Name
+                  {getSortIcon("name")}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-slate-800"
+                onClick={() => handleHeaderSort("email")}
+              >
+                <div className="flex items-center">
+                  Email
+                  {getSortIcon("email")}
+                </div>
+              </TableHead>
               <TableHead>Phone Number</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Creation Date</TableHead>
+              <TableHead 
+                className="cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-slate-800"
+                onClick={() => handleHeaderSort("createdAt")}
+              >
+                <div className="flex items-center">
+                  Creation Date
+                  {getSortIcon("createdAt")}
+                </div>
+              </TableHead>
               <TableHead>Bio</TableHead>
               <TableHead className="w-48">Actions</TableHead>
             </TableRow>
