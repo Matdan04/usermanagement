@@ -26,12 +26,27 @@ export type UsersQuery = {
   order?: "asc" | "desc";
   dateFrom?: string; // ISO date
   dateTo?: string;   // ISO date
+  page?: number;
+  perPage?: number;
 };
 
-export async function fetchUsers(params?: UsersQuery): Promise<User[]> {
+export type PaginatedResponse<T> = {
+  data: T[];
+  pagination: {
+    page: number;
+    perPage: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+export async function fetchUsers(params?: UsersQuery): Promise<PaginatedResponse<User>> {
   const res = await api.get("/users", { params });
-  const data = res.data as unknown[];
-  return data.map((u) => userSchema.parse(u));
+  const responseData = res.data as { data: unknown[]; pagination: { page: number; perPage: number; total: number; totalPages: number } };
+  return {
+    data: responseData.data.map((u) => userSchema.parse(u)),
+    pagination: responseData.pagination,
+  };
 }
 
 export async function fetchUser(id: string): Promise<User> {
@@ -54,7 +69,7 @@ export async function deleteUser(id: string): Promise<void> {
 }
 
 export function useUsers(params: UsersQuery) {
-  return useQuery({
+  return useQuery<PaginatedResponse<User>>({
     queryKey: [usersKeys.list(), params],
     queryFn: () => fetchUsers(params),
   });
@@ -70,7 +85,7 @@ export function useCreateUser() {
     mutationFn: createUser,
     onMutate: async (newUser) => {
       await qc.cancelQueries({ queryKey: usersKeys.all });
-      const previous = qc.getQueriesData<User[]>({ queryKey: usersKeys.all });
+      const previous = qc.getQueriesData<PaginatedResponse<User>>({ queryKey: usersKeys.all });
 
       const tempId = `temp-${Date.now()}`;
       const optimistic: User = {
@@ -86,11 +101,14 @@ export function useCreateUser() {
       } as User;
 
       previous.forEach(([key, old]) => {
-        if (!Array.isArray(old)) return;
-        qc.setQueryData(key, [optimistic, ...old]);
+        if (!old || !old.data) return;
+        qc.setQueryData(key, {
+          data: [optimistic, ...old.data],
+          pagination: { ...old.pagination, total: old.pagination.total + 1 },
+        });
       });
 
-      return { previous } as { previous: [QueryKey, User[] | undefined][] };
+      return { previous } as { previous: [QueryKey, PaginatedResponse<User> | undefined][] };
     },
     onError: (_err, _variables, context) => {
       context?.previous?.forEach(([key, old]) => {
@@ -109,13 +127,13 @@ export function useUpdateUser(id: string) {
     mutationFn: (payload: UpdateUserInput) => updateUser(id, payload),
     onMutate: async (payload) => {
       await qc.cancelQueries({ queryKey: usersKeys.all });
-      const previousList = qc.getQueriesData<User[]>({ queryKey: usersKeys.all });
+      const previousList = qc.getQueriesData<PaginatedResponse<User>>({ queryKey: usersKeys.all });
       const previousDetail = qc.getQueryData<User>(usersKeys.detail(id));
 
       previousList.forEach(([key, old]) => {
-        if (!Array.isArray(old)) return;
-        const next = old.map((u) => (u.id === id ? ({ ...u, ...payload } as User) : u));
-        qc.setQueryData(key, next);
+        if (!old || !old.data) return;
+        const next = old.data.map((u) => (u.id === id ? ({ ...u, ...payload } as User) : u));
+        qc.setQueryData(key, { ...old, data: next });
       });
 
       if (previousDetail) {
@@ -123,7 +141,7 @@ export function useUpdateUser(id: string) {
       }
 
       return { previousList, previousDetail } as {
-        previousList: [QueryKey, User[] | undefined][];
+        previousList: [QueryKey, PaginatedResponse<User> | undefined][];
         previousDetail?: User;
       };
     },
@@ -143,20 +161,20 @@ export function useDeleteUser() {
     mutationFn: deleteUser,
     onMutate: async (id: string) => {
       await qc.cancelQueries({ queryKey: usersKeys.all });
-      const previous = qc.getQueriesData<User[]>({ queryKey: usersKeys.all });
+      const previous = qc.getQueriesData<PaginatedResponse<User>>({ queryKey: usersKeys.all });
 
       previous.forEach(([key, old]) => {
-        if (!Array.isArray(old)) return;
-        qc.setQueryData(
-          key,
-          old.filter((u) => u.id !== id)
-        );
+        if (!old || !old.data) return;
+        qc.setQueryData(key, {
+          data: old.data.filter((u) => u.id !== id),
+          pagination: { ...old.pagination, total: old.pagination.total - 1 },
+        });
       });
 
       const previousDetail = qc.getQueryData<User>(usersKeys.detail(id));
 
       return { previous, previousDetail } as {
-        previous: [QueryKey, User[] | undefined][];
+        previous: [QueryKey, PaginatedResponse<User> | undefined][];
         previousDetail?: User;
       };
     },

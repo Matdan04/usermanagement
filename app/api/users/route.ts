@@ -12,6 +12,8 @@ const listQuerySchema = z.object({
   order: z.enum(["asc", "desc"]).optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
+  page: z.string().optional(),
+  perPage: z.string().optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -21,13 +23,17 @@ export async function GET(req: NextRequest) {
     role: searchParams.get("role") ?? undefined,
     sortBy: (searchParams.get("sortBy") as any) ?? undefined,
     order: (searchParams.get("order") as any) ?? undefined,
+    dateFrom: searchParams.get("dateFrom") ?? undefined,
+    dateTo: searchParams.get("dateTo") ?? undefined,
+    page: searchParams.get("page") ?? undefined,
+    perPage: searchParams.get("perPage") ?? undefined,
   });
 
   if (!parse.success) {
     return NextResponse.json({ error: "Invalid query parameters" }, { status: 400 });
   }
 
-  const { search, role, sortBy = "createdAt", order = "desc", dateFrom, dateTo } = parse.data;
+  const { search, role, sortBy = "createdAt", order = "desc", dateFrom, dateTo, page, perPage } = parse.data;
 
   const where = {
     AND: [
@@ -48,7 +54,22 @@ export async function GET(req: NextRequest) {
 
   const orderBy = { [sortBy]: order };
 
-  const users = await prisma.user.findMany({ where, orderBy });
+  // Parse pagination params
+  const currentPage = page ? parseInt(page, 10) : 1;
+  const itemsPerPage = perPage ? parseInt(perPage, 10) : 10;
+  const skip = (currentPage - 1) * itemsPerPage;
+
+  // Get total count for pagination
+  const total = await prisma.user.count({ where });
+
+  // Get paginated users
+  const users = await prisma.user.findMany({ 
+    where, 
+    orderBy,
+    skip,
+    take: itemsPerPage,
+  });
+  
   // Ensure output matches zod schema (runtime guard)
   const data = users.map((u: { id: string; name: string; email: string; phoneNumber: string | null; role: string; active: boolean; avatar: string | null; bio: string | null; createdAt: Date }) => userSchema.parse({
     ...u,
@@ -57,7 +78,16 @@ export async function GET(req: NextRequest) {
     bio: u.bio ?? "",
     createdAt: u.createdAt.toISOString(),
   }));
-  return NextResponse.json(data);
+  
+  return NextResponse.json({
+    data,
+    pagination: {
+      page: currentPage,
+      perPage: itemsPerPage,
+      total,
+      totalPages: Math.ceil(total / itemsPerPage),
+    },
+  });
 }
 
 export async function POST(req: NextRequest) {

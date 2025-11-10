@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useUsers, useDeleteUser, useCreateUser } from "@/lib/api";
 import { useIsFetching } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { CreateUserInput } from "@/types/user";
+import type { CreateUserInput, User } from "@/types/user";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import {
@@ -51,6 +51,8 @@ export default function UsersPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
 
   const debouncedSearch = useDebounced(search, 300);
 
@@ -62,9 +64,16 @@ export default function UsersPage() {
       dateTo: dateTo || undefined,
       sortBy,
       order,
+      page,
+      perPage,
     }),
-    [debouncedSearch, role, dateFrom, dateTo, sortBy, order]
+    [debouncedSearch, role, dateFrom, dateTo, sortBy, order, page, perPage]
   );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, role, dateFrom, dateTo, sortBy, order, perPage]);
 
   const { data, isLoading, isError, refetch } = useUsers(queryParams);
   const { mutate, mutateAsync, isPending: deleting } = useDeleteUser();
@@ -171,33 +180,36 @@ export default function UsersPage() {
     });
   }
 
+  const users: User[] = data?.data || [];
+  const pagination = data?.pagination;
+
   const allSelected = useMemo(() => {
-    if (!data?.length) return false;
-    return data.every((u) => selected[u.id]);
-  }, [data, selected]);
+    if (!users?.length) return false;
+    return users.every((u: User) => selected[u.id]);
+  }, [users, selected]);
 
   // Analytics derived from current data set
   const roleData = useMemo(() => {
     const counts: Record<string, number> = {};
-    (data || []).forEach((u) => {
+    users.forEach((u: User) => {
       counts[u.role] = (counts[u.role] || 0) + 1;
     });
     return Object.entries(counts).map(([role, count]) => ({ role, count }));
-  }, [data]);
+  }, [users]);
 
   const activeData = useMemo(() => {
     let active = 0;
     let inactive = 0;
-    (data || []).forEach((u) => (u.active ? active++ : inactive++));
+    users.forEach((u: User) => (u.active ? active++ : inactive++));
     return [
       { name: "Active", value: active },
       { name: "Inactive", value: inactive },
     ];
-  }, [data]);
+  }, [users]);
 
   const lineData = useMemo(() => {
     const byDate: Record<string, number> = {};
-    (data || []).forEach((u) => {
+    users.forEach((u: User) => {
       const d = u.createdAt ? new Date(u.createdAt) : null;
       if (!d || Number.isNaN(d.getTime())) return;
       const key = d.toISOString().slice(0, 10);
@@ -206,16 +218,16 @@ export default function UsersPage() {
     return Object.entries(byDate)
       .sort((a, b) => (a[0] < b[0] ? -1 : 1))
       .map(([date, count]) => ({ date, count }));
-  }, [data]);
+  }, [users]);
 
   function toggleAll() {
-    if (!data) return;
+    if (!users.length) return;
     if (allSelected) {
       const cleared: Record<string, boolean> = {};
       setSelected(cleared);
     } else {
       const next: Record<string, boolean> = {};
-      for (const u of data) next[u.id] = true;
+      for (const u of users) next[u.id] = true;
       setSelected(next);
     }
   }
@@ -243,9 +255,9 @@ export default function UsersPage() {
     bulkRunningRef.current = true;
     try {
       // snapshot users to allow undo (recreate via POST)
-      const toRestore: CreateUserInput[] = (data || [])
-        .filter((u) => ids.includes(u.id))
-        .map((u) => ({
+      const toRestore: CreateUserInput[] = users
+        .filter((u: User) => ids.includes(u.id))
+        .map((u: User) => ({
           name: u.name,
           email: u.email,
           role: u.role,
@@ -413,27 +425,43 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <div className="mb-3 flex items-center gap-2">
-        <select
-          className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as SortBy)}
-        >
-          <option value="name">Sort by Name</option>
-          <option value="email">Sort by Email</option>
-          <option value="createdAt">Sort by Created</option>
-        </select>
-        <select
-          className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-          value={order}
-          onChange={(e) => setOrder(e.target.value as SortOrder)}
-        >
-          <option value="asc">Asc</option>
-          <option value="desc">Desc</option>
-        </select>
-        <Button variant="destructive" onClick={initiateBulkDelete} disabled={deleting}>
-          Bulk Delete
-        </Button>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <select
+            className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortBy)}
+          >
+            <option value="name">Sort by Name</option>
+            <option value="email">Sort by Email</option>
+            <option value="createdAt">Sort by Created</option>
+          </select>
+          <select
+            className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            value={order}
+            onChange={(e) => setOrder(e.target.value as SortOrder)}
+          >
+            <option value="asc">Asc</option>
+            <option value="desc">Desc</option>
+          </select>
+          <Button variant="destructive" onClick={initiateBulkDelete} disabled={deleting}>
+            Bulk Delete
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-700 dark:text-gray-300">Per page:</span>
+          <select
+            className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            value={perPage}
+            onChange={(e) => setPerPage(Number(e.target.value))}
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
@@ -479,7 +507,7 @@ export default function UsersPage() {
               </TableRow>
             )}
 
-            {!isLoading && data?.length === 0 && (
+            {!isLoading && users.length === 0 && (
               <TableRow>
                 <TableCell colSpan={10}>
                   <div className="p-4">No users found.</div>
@@ -487,7 +515,7 @@ export default function UsersPage() {
               </TableRow>
             )}
 
-            {data?.map((u) => (
+            {users.map((u: User) => (
               <TableRow key={u.id} data-state={selected[u.id] ? "selected" : undefined}>
                 <TableCell>
                   <input
@@ -549,11 +577,68 @@ export default function UsersPage() {
             ))}
           </TableBody>
           <TableCaption>
-            Showing {data?.length ?? 0} users
+            Showing {users.length} of {pagination?.total ?? 0} users
             {isFetching ? <span className="ml-2 text-gray-500">(syncing…)</span> : null}
           </TableCaption>
         </Table>
       </div>
+
+      {/* Pagination Controls */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-700 dark:text-gray-300">Show per page:</span>
+            <select
+              className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              value={perPage}
+              onChange={(e) => setPerPage(Number(e.target.value))}
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(1)}
+              disabled={page === 1}
+            >
+              First
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(page - 1)}
+              disabled={page === 1}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-gray-700 dark:text-gray-300">
+              Page {page} of {pagination.totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(page + 1)}
+              disabled={page === pagination.totalPages}
+            >
+              Next
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(pagination.totalPages)}
+              disabled={page === pagination.totalPages}
+            >
+              Last
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation Dialogs */}
       <ConfirmationDialog
