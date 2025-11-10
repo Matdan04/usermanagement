@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -70,6 +71,7 @@ export default function UsersPage() {
   const { mutateAsync: createAsync } = useCreateUser();
   const [syncingIds, setSyncingIds] = useState<Record<string, boolean>>({});
   const isFetching = useIsFetching();
+  const [downloading, setDownloading] = useState(false);
   const bulkRunningRef = useRef(false);
   const undoTimerRef = useRef<number | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -112,6 +114,30 @@ export default function UsersPage() {
     setPendingUndo(null);
     if (typeof window !== "undefined") sessionStorage.removeItem(STORAGE_KEY);
     toast.message("Deletion finalized");
+  }
+
+  async function handleDownload() {
+    try {
+      setDownloading(true);
+      const res = await fetch("/api/users/export");
+      if (!res.ok) {
+        throw new Error("Failed to export");
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `users_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("CSV downloaded");
+    } catch (e) {
+      toast.error("Failed to download CSV");
+    } finally {
+      setDownloading(false);
+    }
   }
 
   function showUndoToast(usersToRestore: CreateUserInput[], duration = 5000) {
@@ -281,6 +307,10 @@ export default function UsersPage() {
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={() => refetch()} disabled={isLoading}>
             Refresh
+          </Button>
+          <Button variant="outline" onClick={handleDownload} disabled={downloading || isLoading}>
+            <Download className="mr-2 h-4 w-4" />
+            {downloading ? "Downloading..." : "Download CSV"}
           </Button>
           <Button asChild>
             <Link href="/users/new">New User</Link>
