@@ -9,6 +9,8 @@ const listQuerySchema = z.object({
   role: z.string().optional(),
   sortBy: z.enum(["createdAt", "name", "email", "role"]).optional(),
   order: z.enum(["asc", "desc"]).optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -24,7 +26,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid query parameters" }, { status: 400 });
   }
 
-  const { search, role, sortBy = "createdAt", order = "desc" } = parse.data;
+  const { search, role, sortBy = "createdAt", order = "desc", dateFrom, dateTo } = parse.data;
 
   const where: Prisma.UserWhereInput = {
     AND: [
@@ -38,6 +40,8 @@ export async function GET(req: NextRequest) {
           }
         : {},
       role ? { role } : {},
+      dateFrom ? { createdAt: { gte: new Date(dateFrom) } } : {},
+      dateTo ? { createdAt: { lte: new Date(dateTo) } } : {},
     ],
   };
 
@@ -76,4 +80,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

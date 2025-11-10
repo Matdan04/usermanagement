@@ -19,8 +19,17 @@ export const usersKeys = {
   detail: (id: string) => [...usersKeys.all, "detail", id] as const,
 };
 
-export async function fetchUsers(): Promise<User[]> {
-  const res = await api.get("/users");
+export type UsersQuery = {
+  search?: string;
+  role?: string;
+  sortBy?: "name" | "email" | "createdAt";
+  order?: "asc" | "desc";
+  dateFrom?: string; // ISO date
+  dateTo?: string;   // ISO date
+};
+
+export async function fetchUsers(params?: UsersQuery): Promise<User[]> {
+  const res = await api.get("/users", { params });
   const data = res.data as unknown[];
   return data.map((u) => userSchema.parse(u));
 }
@@ -44,8 +53,11 @@ export async function deleteUser(id: string): Promise<void> {
   await api.delete(`/users/${id}`);
 }
 
-export function useUsers() {
-  return useQuery({ queryKey: usersKeys.list(), queryFn: fetchUsers });
+export function useUsers(params: UsersQuery) {
+  return useQuery({
+    queryKey: [usersKeys.list(), params],
+    queryFn: () => fetchUsers(params),
+  });
 }
 
 export function useUser(id: string) {
@@ -78,4 +90,3 @@ export function useDeleteUser() {
     onSuccess: () => qc.invalidateQueries({ queryKey: usersKeys.list() }),
   });
 }
-
