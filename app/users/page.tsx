@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import type { CreateUserInput, User } from "@/types/user";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ResponsiveContainer,
   BarChart,
@@ -335,7 +336,7 @@ export default function UsersPage() {
   }
 
   return (
-    <main className="mx-auto max-w-[1400px] p-6">
+    <main className="mx-auto max-w-[1400px] p-4 md:p-6">
       <div className="mb-4 flex items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">Users Management</h1>
         <div className="flex items-center gap-2">
@@ -469,8 +470,8 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <Table>
+      <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <Table className="hidden md:table">
           <TableHeader>
             <TableRow>
               <TableHead className="w-10">
@@ -668,6 +669,48 @@ export default function UsersPage() {
           </div>
         </div>
       )}
+
+      {/* Mobile cards (collapses table on small screens) */}
+      <div className="grid gap-4 md:hidden">
+        <AnimatePresence>
+          {users?.map((u) => (
+            <motion.div
+              key={u.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Card className="hover:shadow-md transition-shadow">
+                <CardHeader className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-base">{u.name}</CardTitle>
+                    <p className="text-sm text-gray-500 dark:text-slate-400">{u.email}</p>
+                  </div>
+                  <span
+                    className={u.active ? "text-xs font-medium text-green-600 dark:text-green-400" : "text-xs text-gray-500 dark:text-gray-400"}
+                  >
+                    {u.active ? "Active" : "Inactive"}
+                  </span>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <p className="mb-2 text-sm text-gray-700 dark:text-slate-200">
+                    Role: <span className="font-medium">{u.role}</span>
+                  </p>
+                  <div className="flex gap-2">
+                    <Button asChild size="sm" variant="secondary">
+                      <Link href={`/users/${u.id}/edit`}>Edit</Link>
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => initiateDelete(u.id)}>
+                      Delete
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
 
       {/* Confirmation Dialogs */}
       <ConfirmationDialog

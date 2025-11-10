@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { motion } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -101,7 +102,7 @@ export default function EditUserPage() {
   const active = watch("active");
 
   return (
-    <main className="mx-auto max-w-2xl p-6">
+    <main className="mx-auto max-w-2xl p-4 md:p-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Edit User</h1>
         <Button variant="secondary" onClick={() => router.back()}>
@@ -111,7 +112,13 @@ export default function EditUserPage() {
 
       {isLoading && <p className="text-muted-foreground">Loading…</p>}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <motion.form
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-4"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+      >
         <div className="space-y-2">
           <Label htmlFor="avatar">Avatar URL</Label>
           <Input id="avatar" placeholder="https://..." {...register("avatar")} />
@@ -168,7 +175,7 @@ export default function EditUserPage() {
             Cancel
           </Button>
         </div>
-      </form>
+      </motion.form>
     </main>
   );
 }

@@ -12,6 +12,8 @@ import { useCreateUser } from "@/lib/api";
 import { createUserSchema, type CreateUserInput } from "@/types/user";
 import { toast } from "sonner";
 
+import { motion } from "framer-motion";
+
 export default function NewUserPage() {
   const router = useRouter();
   const {
@@ -53,9 +55,15 @@ export default function NewUserPage() {
   const active = watch("active");
 
   return (
-    <main className="mx-auto max-w-2xl p-6">
+    <main className="mx-auto max-w-2xl p-4 md:p-6">
       <h1 className="mb-6 text-2xl font-semibold">New User</h1>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <motion.form
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-4"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+      >
         <div className="space-y-2">
           <Label htmlFor="avatar">Avatar URL</Label>
           <Input id="avatar" placeholder="https://..." {...register("avatar")} />
@@ -112,7 +120,7 @@ export default function NewUserPage() {
             Cancel
           </Button>
         </div>
-      </form>
+      </motion.form>
     </main>
   );
 }
