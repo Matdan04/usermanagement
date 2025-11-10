@@ -12,6 +12,7 @@ import { useIsFetching } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { CreateUserInput } from "@/types/user";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import {
   ResponsiveContainer,
   BarChart,
@@ -46,6 +47,9 @@ export default function UsersPage() {
   const [sortBy, setSortBy] = useState<SortBy>("createdAt");
   const [order, setOrder] = useState<SortOrder>("desc");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
 
   const debouncedSearch = useDebounced(search, 300);
 
@@ -68,6 +72,7 @@ export default function UsersPage() {
   const isFetching = useIsFetching();
   const bulkRunningRef = useRef(false);
   const undoTimerRef = useRef<number | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [pendingUndo, setPendingUndo] = useState<{
     users: CreateUserInput[];
     expiresAt: number;
@@ -193,7 +198,7 @@ export default function UsersPage() {
     setSelected((s) => ({ ...s, [id]: !s[id] }));
   }
 
-  async function bulkDelete() {
+  function initiateBulkDelete() {
     const ids = Object.entries(selected)
       .filter(([, v]) => v)
       .map(([k]) => k);
@@ -202,7 +207,13 @@ export default function UsersPage() {
       toast.message("Bulk delete already in progress");
       return;
     }
-    if (!confirm(`Delete ${ids.length} user(s)?`)) return;
+    setBulkDeleteDialogOpen(true);
+  }
+
+  async function confirmBulkDelete() {
+    const ids = Object.entries(selected)
+      .filter(([, v]) => v)
+      .map(([k]) => k);
     bulkRunningRef.current = true;
     try {
       // snapshot users to allow undo (recreate via POST)
@@ -240,6 +251,27 @@ export default function UsersPage() {
     } finally {
       bulkRunningRef.current = false;
     }
+  }
+
+  function initiateDelete(userId: string) {
+    setUserToDelete(userId);
+    setDeleteDialogOpen(true);
+  }
+
+  function confirmDelete() {
+    if (!userToDelete) return;
+    setSyncingIds((s) => ({ ...s, [userToDelete]: true }));
+    mutate(userToDelete, {
+      onSuccess: () => toast.success("User deleted"),
+      onError: () => toast.error("Failed to delete"),
+      onSettled: () =>
+        setSyncingIds((s) => {
+          const n = { ...s };
+          delete n[userToDelete];
+          return n;
+        }),
+    });
+    setUserToDelete(null);
   }
 
   return (
@@ -369,7 +401,7 @@ export default function UsersPage() {
           <option value="asc">Asc</option>
           <option value="desc">Desc</option>
         </select>
-        <Button variant="destructive" onClick={bulkDelete} disabled={deleting}>
+        <Button variant="destructive" onClick={initiateBulkDelete} disabled={deleting}>
           Bulk Delete
         </Button>
       </div>
@@ -470,21 +502,8 @@ export default function UsersPage() {
                       size="sm"
                       variant="destructive"
                       className="min-w-[70px]"
-                      onClick={() => {
-                      if (!confirm("Delete this user?")) return;
-                      setSyncingIds((s) => ({ ...s, [u.id]: true }));
-                      mutate(u.id, {
-                        onSuccess: () => toast.success("User deleted"),
-                        onError: () => toast.error("Failed to delete"),
-                        onSettled: () =>
-                          setSyncingIds((s) => {
-                            const n = { ...s };
-                            delete n[u.id];
-                            return n;
-                          }),
-                      });
-                    }}
-                  >
+                      onClick={() => initiateDelete(u.id)}
+                    >
                     {syncingIds[u.id] ? (
                       <span className="inline-flex items-center gap-2">
                         <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-transparent" />
@@ -505,6 +524,31 @@ export default function UsersPage() {
           </TableCaption>
         </Table>
       </div>
+
+      {/* Confirmation Dialogs */}
+      <ConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete User"
+        description="Are you sure you want to delete this user? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={confirmDelete}
+        variant="destructive"
+      />
+
+      <ConfirmationDialog
+        open={bulkDeleteDialogOpen}
+        onOpenChange={setBulkDeleteDialogOpen}
+        title="Delete Multiple Users"
+        description={`Are you sure you want to delete ${
+          Object.entries(selected).filter(([, v]) => v).length
+        } user(s)? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={confirmBulkDelete}
+        variant="destructive"
+      />
     </main>
   );
 }
