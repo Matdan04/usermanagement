@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { userSchema } from "@/types/user";
 
 const idParamSchema = z.object({ id: z.string().cuid() });
@@ -67,7 +68,7 @@ export async function PUT(req: NextRequest, ctx: { params: { id: string } }) {
     if (e instanceof z.ZodError) {
       return NextResponse.json({ error: e.flatten() }, { status: 400 });
     }
-    if (e instanceof Prisma.PrismaClientKnownRequestError) {
+    if (e instanceof PrismaClientKnownRequestError) {
       if (e.code === "P2002") {
         return NextResponse.json({ error: "Email already exists" }, { status: 409 });
       }
@@ -89,7 +90,7 @@ export async function DELETE(_req: NextRequest, ctx: { params: { id: string } })
     await prisma.user.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (e: any) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
+    if (e instanceof PrismaClientKnownRequestError && e.code === "P2025") {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

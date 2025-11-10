@@ -58,9 +58,18 @@ export default function EditUserPage() {
     }
   }, [data, id, reset]);
 
+  useEffect(() => {
+    const status = (error as any)?.response?.status;
+    if (status === 404) {
+      toast.error("User not found. Create a new one.");
+      router.replace("/users/new");
+    }
+  }, [error, router]);
+
   async function onSubmit(values: UpdateUserInput) {
     try {
       await update({
+        id,
         name: values.name,
         email: values.email,
         role: values.role,
@@ -166,10 +175,3 @@ export default function EditUserPage() {
     </main>
   );
 }
-  useEffect(() => {
-    const status = (error as any)?.response?.status;
-    if (status === 404) {
-      toast.error("User not found. Create a new one.");
-      router.replace("/users/new");
-    }
-  }, [error, router]);

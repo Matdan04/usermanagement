@@ -197,9 +197,9 @@ export default function UsersPage() {
   }
 
   return (
-    <main className="mx-auto max-w-6xl p-6">
+    <main className="mx-auto max-w-[1400px] p-6">
       <div className="mb-4 flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">Users</h1>
+        <h1 className="text-2xl font-semibold">Users Management</h1>
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={() => refetch()} disabled={isLoading}>
             Refresh
@@ -272,7 +272,7 @@ export default function UsersPage() {
               <TableHead>Status</TableHead>
               <TableHead>Creation Date</TableHead>
               <TableHead>Bio</TableHead>
-              <TableHead className="w-32">Actions</TableHead>
+              <TableHead className="w-48">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -344,14 +344,16 @@ export default function UsersPage() {
                 <TableCell>
                   {u.bio ? (u.bio.length > 60 ? `${u.bio.slice(0, 57)}...` : u.bio) : "-"}
                 </TableCell>
-                <TableCell className="space-x-2">
-                  <Button asChild size="sm" variant="secondary">
-                    <Link href={`/users/${u.id}/edit`}>Edit</Link>
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => {
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Button asChild size="sm" variant="secondary" className="min-w-[60px]">
+                      <Link href={`/users/${u.id}/edit`}>Edit</Link>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="min-w-[70px]"
+                      onClick={() => {
                       if (!confirm("Delete this user?")) return;
                       setSyncingIds((s) => ({ ...s, [u.id]: true }));
                       mutate(u.id, {
@@ -375,6 +377,7 @@ export default function UsersPage() {
                       "Delete"
                     )}
                   </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

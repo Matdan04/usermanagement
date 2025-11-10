@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { createUserSchema, userSchema } from "@/types/user";
 
 const listQuerySchema = z.object({
@@ -28,14 +29,14 @@ export async function GET(req: NextRequest) {
 
   const { search, role, sortBy = "createdAt", order = "desc", dateFrom, dateTo } = parse.data;
 
-  const where: Prisma.UserWhereInput = {
+  const where = {
     AND: [
       search
         ? {
             OR: [
-              { name: { contains: search, mode: "insensitive" } },
-              { email: { contains: search, mode: "insensitive" } },
-              { phoneNumber: { contains: search, mode: "insensitive" } },
+              { name: { contains: search, mode: "insensitive" as const } },
+              { email: { contains: search, mode: "insensitive" as const } },
+              { phoneNumber: { contains: search, mode: "insensitive" as const } },
             ],
           }
         : {},
@@ -45,11 +46,11 @@ export async function GET(req: NextRequest) {
     ],
   };
 
-  const orderBy: Prisma.UserOrderByWithRelationInput = { [sortBy]: order } as any;
+  const orderBy = { [sortBy]: order };
 
   const users = await prisma.user.findMany({ where, orderBy });
   // Ensure output matches zod schema (runtime guard)
-  const data = users.map((u) => userSchema.parse({
+  const data = users.map((u: { id: string; name: string; email: string; phoneNumber: string | null; role: string; active: boolean; avatar: string | null; bio: string | null; createdAt: Date }) => userSchema.parse({
     ...u,
     phoneNumber: u.phoneNumber ?? "",
     avatar: u.avatar ?? "",
@@ -86,7 +87,7 @@ export async function POST(req: NextRequest) {
     if (e instanceof z.ZodError) {
       return NextResponse.json({ error: e.flatten() }, { status: 400 });
     }
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+    if (e instanceof PrismaClientKnownRequestError && e.code === "P2002") {
       return NextResponse.json({ error: "Email already exists" }, { status: 409 });
     }
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

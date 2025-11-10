@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { CreateUserInput, UpdateUserInput, User, userSchema } from "@/types/user";
 
 const baseURL = process.env.NEXT_PUBLIC_API_URL || "/api";
@@ -90,7 +90,7 @@ export function useCreateUser() {
         qc.setQueryData(key, [optimistic, ...old]);
       });
 
-      return { previous } as { previous: [unknown, User[] | undefined][] };
+      return { previous } as { previous: [QueryKey, User[] | undefined][] };
     },
     onError: (_err, _variables, context) => {
       context?.previous?.forEach(([key, old]) => {
@@ -123,7 +123,7 @@ export function useUpdateUser(id: string) {
       }
 
       return { previousList, previousDetail } as {
-        previousList: [unknown, User[] | undefined][];
+        previousList: [QueryKey, User[] | undefined][];
         previousDetail?: User;
       };
     },
@@ -156,7 +156,7 @@ export function useDeleteUser() {
       const previousDetail = qc.getQueryData<User>(usersKeys.detail(id));
 
       return { previous, previousDetail } as {
-        previous: [unknown, User[] | undefined][];
+        previous: [QueryKey, User[] | undefined][];
         previousDetail?: User;
       };
     },
