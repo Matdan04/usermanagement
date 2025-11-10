@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUsers, useDeleteUser } from "@/lib/api";
+import { useIsFetching } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 type SortBy = "name" | "email" | "createdAt";
@@ -46,8 +47,10 @@ export default function UsersPage() {
   );
 
   const { data, isLoading, isError, refetch } = useUsers(queryParams);
-  const { mutate: deleteUser, isPending: deleting } = useDeleteUser();
+  const { mutate, mutateAsync, isPending: deleting } = useDeleteUser();
   const [syncingIds, setSyncingIds] = useState<Record<string, boolean>>({});
+  const isFetching = useIsFetching();
+  const bulkRunningRef = useRef(false);
 
   const allSelected = useMemo(() => {
     if (!data?.length) return false;
@@ -75,26 +78,32 @@ export default function UsersPage() {
       .filter(([, v]) => v)
       .map(([k]) => k);
     if (ids.length === 0) return;
+    if (bulkRunningRef.current) {
+      toast.message("Bulk delete already in progress");
+      return;
+    }
     if (!confirm(`Delete ${ids.length} user(s)?`)) return;
-    ids.forEach((id) => {
-      setSyncingIds((s) => ({ ...s, [id]: true }));
-      deleteUser(id, {
-        onSuccess: () => {
-          // success toast per id might be noisy; keep one at end via settle check
-        },
-        onError: () => {
-          toast.error(`Failed to delete user`);
-        },
-        onSettled: () => {
+    bulkRunningRef.current = true;
+    try {
+      for (const id of ids) {
+        setSyncingIds((s) => ({ ...s, [id]: true }));
+        try {
+          await mutateAsync(id);
+        } catch {
+          toast.error("Failed to delete a user; rolled back");
+        } finally {
           setSyncingIds((s) => {
             const n = { ...s };
             delete n[id];
             return n;
           });
-        },
-      });
-    });
-    toast.success("Deletion requested – syncing…");
+        }
+      }
+      toast.success("Bulk delete complete");
+      setSelected({});
+    } finally {
+      bulkRunningRef.current = false;
+    }
   }
 
   return (
@@ -254,7 +263,7 @@ export default function UsersPage() {
                     onClick={() => {
                       if (!confirm("Delete this user?")) return;
                       setSyncingIds((s) => ({ ...s, [u.id]: true }));
-                      deleteUser(u.id, {
+                      mutate(u.id, {
                         onSuccess: () => toast.success("User deleted"),
                         onError: () => toast.error("Failed to delete"),
                         onSettled: () =>
@@ -279,7 +288,10 @@ export default function UsersPage() {
               </TableRow>
             ))}
           </TableBody>
-          <TableCaption>Showing {data?.length ?? 0} users</TableCaption>
+          <TableCaption>
+            Showing {data?.length ?? 0} users
+            {isFetching ? <span className="ml-2 text-gray-500">(syncing…)</span> : null}
+          </TableCaption>
         </Table>
       </div>
     </main>

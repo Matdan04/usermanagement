@@ -17,7 +17,7 @@ export default function EditUserPage() {
   const params = useParams();
   const id = String(params?.id);
   const router = useRouter();
-  const { data, isLoading } = useUser(id);
+  const { data, isLoading, error } = useUser(id);
   const { mutateAsync: update, isPending } = useUpdateUser(id);
 
   const form = useForm<UpdateUserInput>({
@@ -68,10 +68,26 @@ export default function EditUserPage() {
         phoneNumber: values.phoneNumber || undefined,
         avatar: values.avatar || undefined,
         bio: values.bio || undefined,
+      }, {
+        onError: (err: any) => {
+          const status = err?.response?.status;
+          if (status === 404) {
+            toast.error("User was deleted. Create a new one.");
+            router.replace("/users/new");
+          } else {
+            toast.error("Failed to update user");
+          }
+        },
       });
       toast.success("User updated");
       router.push("/users");
-    } catch (e) {
+    } catch (e: any) {
+      const status = e?.response?.status;
+      if (status === 404) {
+        toast.error("User was deleted. Create a new one.");
+        router.replace("/users/new");
+        return;
+      }
       toast.error("Failed to update user");
     }
   }
@@ -150,3 +166,10 @@ export default function EditUserPage() {
     </main>
   );
 }
+  useEffect(() => {
+    const status = (error as any)?.response?.status;
+    if (status === 404) {
+      toast.error("User not found. Create a new one.");
+      router.replace("/users/new");
+    }
+  }, [error, router]);
