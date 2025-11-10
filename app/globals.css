@@ -5,13 +5,25 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --border: #e5e7eb;
+  --input: #ffffff;
+  --input-border: #d1d5db;
+  --muted: #f9fafb;
+  --muted-foreground: #6b7280;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --card: #1e293b;
+  --card-foreground: #f1f5f9;
+  --border: #334155;
+  --input: #1e293b;
+  --input-border: #475569;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
 }
 
 body {
@@ -24,4 +36,21 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* Date input calendar icon styling for dark mode */
+.date-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.dark .date-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.8;
+}
+
+.dark .date-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  background-color: rgba(148, 163, 184, 0.2);
 }

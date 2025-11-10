@@ -59,38 +59,38 @@ export default function NewUserPage() {
         <div className="space-y-2">
           <Label htmlFor="avatar">Avatar URL</Label>
           <Input id="avatar" placeholder="https://..." {...register("avatar")} />
-          {errors.avatar && <p className="text-sm text-red-600">{errors.avatar.message as string}</p>}
+          {errors.avatar && <p className="text-sm text-red-600 dark:text-red-400">{errors.avatar.message as string}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
           <Input id="name" {...register("name")} />
-          {errors.name && <p className="text-sm text-red-600">{errors.name.message}</p>}
+          {errors.name && <p className="text-sm text-red-600 dark:text-red-400">{errors.name.message}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input id="email" type="email" {...register("email")} />
-          {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
+          {errors.email && <p className="text-sm text-red-600 dark:text-red-400">{errors.email.message}</p>}
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <select id="role" className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm" {...register("role")}> 
+            <select id="role" className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100" {...register("role")}> 
               <option value="admin">admin</option>
               <option value="editor">editor</option>
               <option value="user">user</option>
             </select>
-            {errors.role && <p className="text-sm text-red-600">{errors.role.message}</p>}
+            {errors.role && <p className="text-sm text-red-600 dark:text-red-400">{errors.role.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="phoneNumber">Phone</Label>
             <Input id="phoneNumber" {...register("phoneNumber")} />
-            {errors.phoneNumber && <p className="text-sm text-red-600">{errors.phoneNumber.message as string}</p>}
+            {errors.phoneNumber && <p className="text-sm text-red-600 dark:text-red-400">{errors.phoneNumber.message as string}</p>}
           </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="bio">Bio</Label>
           <Textarea id="bio" rows={4} {...register("bio")} />
-          {errors.bio && <p className="text-sm text-red-600">{errors.bio.message as string}</p>}
+          {errors.bio && <p className="text-sm text-red-600 dark:text-red-400">{errors.bio.message as string}</p>}
         </div>
         <div className="flex items-center gap-3">
           <Switch id="active" checked={!!active} onCheckedChange={(v) => setValue("active", !!v)} />

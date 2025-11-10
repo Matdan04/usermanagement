@@ -10,8 +10,10 @@ const Switch = React.forwardRef<React.ElementRef<typeof RadixSwitch.Root>, Switc
       ref={ref}
       className={cn(
         "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border border-transparent",
-        "transition-colors focus-visible:outline-none focus-visible:ring-2",
-        "data-[state=checked]:bg-black data-[state=unchecked]:bg-gray-200",
+        "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+        "data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-gray-200",
+        "dark:data-[state=checked]:bg-blue-500 dark:data-[state=unchecked]:bg-slate-700",
+        "dark:focus-visible:ring-blue-400",
         className
       )}
       {...props}

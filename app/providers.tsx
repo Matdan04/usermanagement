@@ -3,15 +3,18 @@
 import { QueryClient, QueryClientProvider, useIsFetching } from "@tanstack/react-query";
 import { ReactNode, useState } from "react";
 import { Toaster } from "sonner";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
   return (
-    <QueryClientProvider client={queryClient}>
-      <TopFetchingBar />
-      {children}
-      <Toaster richColors closeButton />
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <TopFetchingBar />
+        {children}
+        <Toaster richColors closeButton />
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Providers from "./providers";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -25,9 +26,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Providers>{children}</Providers>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground transition-colors duration-300`}>
+        <Providers>
+          <div className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white/80 backdrop-blur-lg shadow-sm dark:border-slate-700 dark:bg-slate-900/80 transition-colors">
+            <div className="mx-auto flex max-w-6xl items-center justify-end gap-2 p-3">
+              <ThemeToggle />
+            </div>
+          </div>
+          {children}
+        </Providers>
       </body>
     </html>
   );

@@ -92,7 +92,7 @@ export default function EditUserPage() {
           <Input id="bio" value={form.bio} onChange={(e) => set("bio", e.target.value)} />
         </div>
         <div className="flex items-center gap-2">
-          <input id="active" type="checkbox" checked={form.active} onChange={(e) => set("active", e.target.checked)} />
+          <input id="active" type="checkbox" className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:focus:ring-blue-400" checked={form.active} onChange={(e) => set("active", e.target.checked)} />
           <Label htmlFor="active">Active</Label>
         </div>
 

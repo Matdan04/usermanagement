@@ -219,7 +219,7 @@ export default function UsersPage() {
           />
         </div>
         <div>
-          <select className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm" value={role} onChange={(e) => setRole(e.target.value)}>
+          <select className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm transition-colors placeholder:text-gray-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-400" value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="">All roles</option>
             <option value="admin">admin</option>
             <option value="editor">editor</option>
@@ -227,16 +227,16 @@ export default function UsersPage() {
           </select>
         </div>
         <div>
-          <input type="date" className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          <input type="date" className="date-input h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:[color-scheme:dark]" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} placeholder="From date" />
         </div>
         <div>
-          <input type="date" className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          <input type="date" className="date-input h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:[color-scheme:dark]" value={dateTo} onChange={(e) => setDateTo(e.target.value)} placeholder="To date" />
         </div>
       </div>
 
       <div className="mb-3 flex items-center gap-2">
         <select
-          className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm"
+          className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as SortBy)}
         >
@@ -245,7 +245,7 @@ export default function UsersPage() {
           <option value="createdAt">Sort by Created</option>
         </select>
         <select
-          className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm"
+          className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           value={order}
           onChange={(e) => setOrder(e.target.value as SortOrder)}
         >
@@ -257,12 +257,12 @@ export default function UsersPage() {
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-md border">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-10">
-                <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Select all" />
+                <input type="checkbox" className="h-4 w-4 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-slate-500 dark:bg-slate-700 dark:focus:ring-blue-400" checked={allSelected} onChange={toggleAll} aria-label="Select all" />
               </TableHead>
               <TableHead>Avatar</TableHead>
               <TableHead>Name</TableHead>
@@ -313,6 +313,7 @@ export default function UsersPage() {
                 <TableCell>
                   <input
                     type="checkbox"
+                    className="h-4 w-4 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-slate-500 dark:bg-slate-700 dark:focus:ring-blue-400"
                     checked={!!selected[u.id]}
                     onChange={() => toggleOne(u.id)}
                     aria-label={`Select ${u.name}`}
@@ -323,13 +324,13 @@ export default function UsersPage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={u.avatar} alt={u.name} className="h-8 w-8 rounded-full object-cover" />
                   ) : (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-xs font-medium">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-purple-500 text-xs font-semibold text-white shadow-sm">
                       {u.name?.[0]?.toUpperCase() || "?"}
                     </div>
                   )}
                 </TableCell>
                 <TableCell>
-                  <Link href={`/users/${u.id}`} className="underline">
+                  <Link href={`/users/${u.id}`} className="font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
                     {u.name}
                   </Link>
                 </TableCell>
@@ -337,7 +338,7 @@ export default function UsersPage() {
                 <TableCell>{u.phoneNumber || "-"}</TableCell>
                 <TableCell>{u.role}</TableCell>
                 <TableCell>
-                  <span className={u.active ? "text-green-700" : "text-gray-500"}>{u.active ? "Active" : "Inactive"}</span>
+                  <span className={u.active ? "font-medium text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"}>{u.active ? "Active" : "Inactive"}</span>
                 </TableCell>
                 <TableCell>{u.createdAt ? format(new Date(u.createdAt), "yyyy-MM-dd") : ""}</TableCell>
                 <TableCell>
