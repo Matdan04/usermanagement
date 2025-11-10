@@ -91,7 +91,7 @@ export default function NewUserPage() {
               id="avatarFile"
               type="file"
               accept="image/*"
-              className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm file:mr-3 file:rounded file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm file:mr-3 file:rounded file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-gray-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:file:text-slate-900"
               onChange={(e) => {
                 const file = e.target.files?.[0] || null;
                 setAvatarFile(file);

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef, Suspense } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
@@ -20,7 +21,10 @@ import { useBulkDelete } from "@/hooks/use-bulk-delete";
 type SortBy = "name" | "email" | "createdAt";
 type SortOrder = "asc" | "desc";
 
-export default function UsersPage() {
+function UsersContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -50,10 +54,63 @@ export default function UsersPage() {
     [debouncedSearch, role, dateFrom, dateTo, sortBy, order, page, perPage]
   );
 
-  // Reset to page 1 when filters change
+  // Track last params we wrote to avoid feedback loops
+  const lastSyncedParams = useRef<string | null>(null);
+
+  // Read params from URL and hydrate local state (on mount and popstate)
   useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, role, dateFrom, dateTo, sortBy, order, perPage]);
+    if (!searchParams) return;
+    const sp = searchParams;
+    const spString = sp.toString();
+    if (lastSyncedParams.current !== null && lastSyncedParams.current === spString) {
+      // Skip hydrating when the change came from our own replace()
+      return;
+    }
+
+    const pSearch = sp.get("search") ?? "";
+    const pRole = sp.get("role") ?? "";
+    const pDateFrom = sp.get("dateFrom") ?? "";
+    const pDateTo = sp.get("dateTo") ?? "";
+    const pSortBy = (sp.get("sortBy") as SortBy) ?? "createdAt";
+    const pOrder = (sp.get("order") as SortOrder) ?? "desc";
+    const pPage = Number(sp.get("page") ?? "1");
+    const pPerPage = Number(sp.get("perPage") ?? "10");
+
+    // Validate sort values
+    const validSortBy: SortBy[] = ["name", "email", "createdAt"];
+    const validOrder: SortOrder[] = ["asc", "desc"];
+
+    // Only update if different to avoid loops
+    if (search !== pSearch) setSearch(pSearch);
+    if (role !== pRole) setRole(pRole);
+    if (dateFrom !== pDateFrom) setDateFrom(pDateFrom);
+    if (dateTo !== pDateTo) setDateTo(pDateTo);
+    if (validSortBy.includes(pSortBy) && sortBy !== pSortBy) setSortBy(pSortBy);
+    if (validOrder.includes(pOrder) && order !== pOrder) setOrder(pOrder);
+    if (!Number.isNaN(pPage) && pPage > 0 && page !== pPage) setPage(pPage);
+    if (!Number.isNaN(pPerPage) && pPerPage > 0 && perPage !== pPerPage) setPerPage(pPerPage);
+  }, [searchParams, search, role, dateFrom, dateTo, sortBy, order, page, perPage]);
+
+  // Sync current state to URL params
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (role) params.set("role", role);
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    if (dateTo) params.set("dateTo", dateTo);
+    if (sortBy) params.set("sortBy", sortBy);
+    if (order) params.set("order", order);
+    if (page) params.set("page", String(page));
+    if (perPage) params.set("perPage", String(perPage));
+
+    const next = params.toString();
+    const current = searchParams?.toString() ?? "";
+    if (next !== current) {
+      lastSyncedParams.current = next;
+      router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
+    }
+    // We intentionally include debouncedSearch so URL updates are throttled while typing
+  }, [debouncedSearch, role, dateFrom, dateTo, sortBy, order, page, perPage, pathname, router, searchParams]);
 
   const { data, isLoading, isError, refetch } = useUsers(queryParams);
   const isFetching = useIsFetching();
@@ -120,6 +177,7 @@ export default function UsersPage() {
       setSortBy(column);
       setOrder("asc");
     }
+    setPage(1);
   }
 
   return (
@@ -147,10 +205,22 @@ export default function UsersPage() {
         role={role}
         dateFrom={dateFrom}
         dateTo={dateTo}
-        onSearchChange={setSearch}
-        onRoleChange={setRole}
-        onDateFromChange={setDateFrom}
-        onDateToChange={setDateTo}
+        onSearchChange={(v) => {
+          setSearch(v);
+          setPage(1);
+        }}
+        onRoleChange={(v) => {
+          setRole(v);
+          setPage(1);
+        }}
+        onDateFromChange={(v) => {
+          setDateFrom(v);
+          setPage(1);
+        }}
+        onDateToChange={(v) => {
+          setDateTo(v);
+          setPage(1);
+        }}
       />
 
       <div className="mb-3 flex items-center justify-between gap-2">
@@ -164,7 +234,10 @@ export default function UsersPage() {
           <select
             className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm transition-colors dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
             value={perPage}
-            onChange={(e) => setPerPage(Number(e.target.value))}
+            onChange={(e) => {
+              setPerPage(Number(e.target.value));
+              setPage(1);
+            }}
           >
             <option value={5}>5</option>
             <option value={10}>10</option>
@@ -197,7 +270,10 @@ export default function UsersPage() {
         totalPages={pagination?.totalPages ?? 1}
         perPage={perPage}
         onPageChange={setPage}
-        onPerPageChange={setPerPage}
+        onPerPageChange={(n) => {
+          setPerPage(n);
+          setPage(1);
+        }}
       />
 
       <UserMobileCards users={users} onDelete={initiateDelete} />
@@ -224,5 +300,19 @@ export default function UsersPage() {
         variant="destructive"
       />
     </main>
+  );
+}
+
+export default function UsersPage() {
+  return (
+    <Suspense fallback={
+      <div className="mx-auto max-w-[1400px] p-4 md:p-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600" />
+        </div>
+      </div>
+    }>
+      <UsersContent />
+    </Suspense>
   );
 }
