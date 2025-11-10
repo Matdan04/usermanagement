@@ -11,6 +11,20 @@ import { useUsers, useDeleteUser, useCreateUser } from "@/lib/api";
 import { useIsFetching } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { CreateUserInput } from "@/types/user";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip as ReTooltip,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+} from "recharts";
 
 type SortBy = "name" | "email" | "createdAt";
 type SortOrder = "asc" | "desc";
@@ -131,6 +145,38 @@ export default function UsersPage() {
     return data.every((u) => selected[u.id]);
   }, [data, selected]);
 
+  // Analytics derived from current data set
+  const roleData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    (data || []).forEach((u) => {
+      counts[u.role] = (counts[u.role] || 0) + 1;
+    });
+    return Object.entries(counts).map(([role, count]) => ({ role, count }));
+  }, [data]);
+
+  const activeData = useMemo(() => {
+    let active = 0;
+    let inactive = 0;
+    (data || []).forEach((u) => (u.active ? active++ : inactive++));
+    return [
+      { name: "Active", value: active },
+      { name: "Inactive", value: inactive },
+    ];
+  }, [data]);
+
+  const lineData = useMemo(() => {
+    const byDate: Record<string, number> = {};
+    (data || []).forEach((u) => {
+      const d = u.createdAt ? new Date(u.createdAt) : null;
+      if (!d || Number.isNaN(d.getTime())) return;
+      const key = d.toISOString().slice(0, 10);
+      byDate[key] = (byDate[key] || 0) + 1;
+    });
+    return Object.entries(byDate)
+      .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+      .map(([date, count]) => ({ date, count }));
+  }, [data]);
+
   function toggleAll() {
     if (!data) return;
     if (allSelected) {
@@ -208,6 +254,77 @@ export default function UsersPage() {
             <Link href="/users/new">New User</Link>
           </Button>
         </div>
+      </div>
+
+      {/* Analytics */}
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle>Users by Role</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-40 w-full" />
+            ) : (
+              <div className="h-40">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={roleData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                    <XAxis dataKey="role" stroke="currentColor" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="currentColor" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                    <ReTooltip cursor={{ fill: "rgba(0,0,0,0.05)" }} />
+                    <Bar dataKey="count" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Active vs Inactive</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-40 w-full" />
+            ) : (
+              <div className="h-40">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <ReTooltip />
+                    <Pie data={activeData} dataKey="value" nameKey="name" innerRadius={40} outerRadius={60} paddingAngle={4}>
+                      {activeData.map((_, idx) => (
+                        <Cell key={`c-${idx}`} fill={idx === 0 ? "#22c55e" : "#e5e7eb"} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Registrations Over Time</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-40 w-full" />
+            ) : (
+              <div className="h-40">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={lineData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                    <XAxis dataKey="date" stroke="currentColor" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="currentColor" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                    <ReTooltip />
+                    <Line type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-5">
