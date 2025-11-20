@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +21,7 @@ export default function EditUserPage() {
   const router = useRouter();
   const { data, isLoading, error } = useUser(id);
   const { mutateAsync: update, isPending } = useUpdateUser(id);
+  const [imageError, setImageError] = useState(false);
 
   const form = useForm<UpdateUserInput>({
     resolver: zodResolver(updateUserSchema),
@@ -54,6 +56,7 @@ export default function EditUserPage() {
         avatar: data.avatar ?? "",
         bio: data.bio ?? "",
       });
+      setImageError(false);
     }
   }, [data, reset]);
 
@@ -100,6 +103,7 @@ export default function EditUserPage() {
   }
 
   const active = watch("active");
+  const avatarUrl = watch("avatar");
 
   return (
     <main className="mx-auto max-w-2xl p-4 md:p-6">
@@ -120,8 +124,41 @@ export default function EditUserPage() {
         transition={{ duration: 0.2 }}
       >
         <div className="space-y-2">
-          <Label htmlFor="avatar">Avatar URL</Label>
-          <Input id="avatar" placeholder="https://..." {...register("avatar")} />
+          <Label htmlFor="avatar">Avatar</Label>
+          {avatarUrl && !imageError && (
+            <div className="mb-3 flex justify-center">
+              <div className="relative h-32 w-32 overflow-hidden rounded-full border-4 border-gray-200 shadow-lg dark:border-slate-700">
+                <Image
+                  src={avatarUrl}
+                  alt="User avatar"
+                  width={128}
+                  height={128}
+                  className="h-full w-full object-cover"
+                  onError={() => setImageError(true)}
+                  unoptimized
+                />
+              </div>
+            </div>
+          )}
+          {avatarUrl && imageError && (
+            <div className="mb-3 flex justify-center">
+              <div className="relative h-32 w-32 overflow-hidden rounded-full border-4 border-gray-200 bg-gray-100 shadow-lg dark:border-slate-700 dark:bg-slate-800">
+                <div className="flex h-full w-full items-center justify-center text-sm text-gray-500 dark:text-gray-400">
+                  No Image
+                </div>
+              </div>
+            </div>
+          )}
+          <Label htmlFor="avatar-url" className="text-sm text-muted-foreground">Avatar URL</Label>
+          <Input 
+            id="avatar-url" 
+            placeholder="https://..." 
+            {...register("avatar")}
+            onChange={(e) => {
+              setImageError(false);
+              register("avatar").onChange(e);
+            }}
+          />
           {errors.avatar && <p className="text-sm text-red-600 dark:text-red-400">{errors.avatar.message as string}</p>}
         </div>
         <div className="space-y-2">
